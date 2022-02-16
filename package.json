@@ -2,7 +2,7 @@
   "name": "sqwid-verifier",
   "version": "1.0.0",
   "scripts": {
-    "start": "nodemon ."
+    "start": "node index.js"
   },
   "main": "index.js",
   "author": "andithemudkip",
@@ -10,12 +10,17 @@
   "dependencies": {
     "@apollo/client": "^3.5.8",
     "@reef-defi/evm-provider": "^1.0.4",
+    "@sqwid/rekognition": "^1.1.2",
     "apollo-link": "^1.2.14",
     "apollo-link-ws": "^1.0.20",
+    "axios": "^0.26.0",
+    "dotenv": "^16.0.0",
     "ethers": "^5.5.4",
+    "firebase-admin": "^10.0.2",
     "graphql": "^16.3.0",
     "graphql-tag": "^2.12.6",
     "graphql-ws": "^5.5.5",
+    "multiformats": "^9.6.4",
     "subscriptions-transport-ws": "^0.11.0",
     "ws": "^8.5.0"
   }
