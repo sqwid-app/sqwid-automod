@@ -1,6 +1,6 @@
 require ( 'console-stamp' ) ( console );
 const { testnet, mainnet } = require ('./lib/firebase');
-const Rekognition = require ('@sqwid/rekognition');
+const Rekognition = require ('@sqwid/rekognition-wrapper');
 const { getCloudflareURL, getDwebURL, getInfuraURL } = require('./lib/getIPFSURL');
 const { default: axios } = require('axios');
 const { FieldValue } = require ('firebase-admin').firestore;
@@ -13,6 +13,11 @@ const rekognition = new Rekognition ({
     region: 'eu-central-1',
     MinConfidence: 75
 });
+
+
+String.prototype.includesAny = function (arr) {
+    return arr.some (v => this.includes (v));
+};
 
 let currentDocs = [];
 
@@ -62,7 +67,7 @@ const declineDoc = async (doc, reason) => {
     await doc.ref.update ({
         approved: false
     });
-    if (reason) console.log (doc.id, reason);
+    if (reason) console.error (doc.id, reason);
 }
 
 const checkLabels = async (doc, labels) => {
@@ -95,23 +100,23 @@ const doCheckDocs = async () => {
         if (actualType.headers['content-type'] !== mime) {
             await declineDoc (doc, `wrong mimetype, expected ${mime}, got ${actualType.headers['content-type']}`);
         } else {
-            if (meta.image !== meta.media) {
-                const resultImagePromise = rekognition.detectExplicitContent ({
-                    url: image,
-                    config: {
-                        resize: { width: 1024 }
-                    }
-                });
-                const resultMediaPromise = rekognition.detectExplicitContent ({
-                    url: media
-                });
-
-                const [imageResult, mediaResult] = await Promise.all ([resultImagePromise, resultMediaPromise]);
-                const allLabels = [...imageResult.ModerationLabels, ...mediaResult.ModerationLabels];
-                const labels = constructLabels (allLabels);
-                await checkLabels (doc, labels);
-            } else {
-                try {
+            try {
+                if (meta.image !== meta.media && !mime.startsWith ('audio')) {
+                    const resultImagePromise = rekognition.detectExplicitContent ({
+                        url: image,
+                        config: {
+                            resize: { width: 1024 }
+                        }
+                    });
+                    const resultMediaPromise = rekognition.detectExplicitContent ({
+                        url: media
+                    });
+    
+                    const [imageResult, mediaResult] = await Promise.all ([resultImagePromise, resultMediaPromise]);
+                    const allLabels = [...imageResult.ModerationLabels, ...mediaResult.ModerationLabels];
+                    const labels = constructLabels (allLabels);
+                    await checkLabels (doc, labels);
+                } else {
                     const resultImage = await rekognition.detectExplicitContent ({
                         url: image,
                         config: {
@@ -120,9 +125,12 @@ const doCheckDocs = async () => {
                     });
                     const labels = constructLabels (resultImage.ModerationLabels);
                     await checkLabels (doc, labels);
-                } catch (e) {
-                    console.log (e);
                 }
+            } catch (e) {
+                if (e.toString ().toLowerCase ().includesAny (
+                    ['video duration', 'invalid file type', 'invalid data content']
+                )) await declineDoc (doc, e);
+                else console.error (e);
             }
         }
         await setTimeout (2000);
@@ -143,7 +151,7 @@ const testnetObserver = testnetQuery.onSnapshot (async snapshot => {
         }
     });
 }, err => {
-    console.log ('err', err);
+    console.error (err);
 });
 
 const mainnetObserver = mainnetQuery.onSnapshot (async snapshot => {
@@ -155,5 +163,7 @@ const mainnetObserver = mainnetQuery.onSnapshot (async snapshot => {
         }
     });
 }, err => {
-    console.log ('err', err);
+    console.error (err);
 });
+
+console.log ('started');
