@@ -1,9 +1,11 @@
-const firebase = require ('./lib/firebase');
+require ( 'console-stamp' ) ( console );
+const { testnet, mainnet } = require ('./lib/firebase');
 const Rekognition = require ('@sqwid/rekognition');
 const { getCloudflareURL, getDwebURL, getInfuraURL } = require('./lib/getIPFSURL');
 const { default: axios } = require('axios');
 const { FieldValue } = require ('firebase-admin').firestore;
-const query = firebase.collection ('collectibles').where ('approved', '==', null);
+const testnetQuery = testnet.collection ('collectibles').where ('approved', '==', null);
+const mainnetQuery = mainnet.collection ('collectibles').where ('approved', '==', null);
 const { setTimeout } = require ('timers/promises');
 const rekognition = new Rekognition ({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -45,7 +47,7 @@ const approveDoc = async (doc) => {
         approved: true
     });
 
-    let allowItem = firebase.collection ('blacklists').doc ('collectibles').update ({
+    let allowItem = doc.ref.firestore.collection ('blacklists').doc ('collectibles').update ({
         allowed: FieldValue.arrayUnion ({
             id,
             collection: collectionId
@@ -53,6 +55,7 @@ const approveDoc = async (doc) => {
     });
 
     await Promise.all ([updateItem, allowItem]);
+    console.log ('approved', doc.id, doc.ref.firestore.projectId);
 }
 
 const declineDoc = async (doc, reason) => {
@@ -131,7 +134,19 @@ const doCheckDocs = async () => {
 
 doCheckDocs ();
 
-const observer = query.onSnapshot (async snapshot => {
+const testnetObserver = testnetQuery.onSnapshot (async snapshot => {
+    snapshot.docs.forEach (async doc => {
+        if (currentDocs.find (docu => docu.id === doc.id)) {
+            return;
+        } else {
+            currentDocs.push (doc);
+        }
+    });
+}, err => {
+    console.log ('err', err);
+});
+
+const mainnetObserver = mainnetQuery.onSnapshot (async snapshot => {
     snapshot.docs.forEach (async doc => {
         if (currentDocs.find (docu => docu.id === doc.id)) {
             return;
