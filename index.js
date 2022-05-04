@@ -90,48 +90,53 @@ const checkLabels = async (doc, labels) => {
 
 const doCheckDocs = async () => {
     for (const doc of currentDocs) {
-        console.log ('checking', doc.id, doc.data ().id);
-        const meta = doc.data ().meta;
-        const image = getInfuraURL (meta.image);
-        const media = meta.image !== meta.media ? getDwebURL (meta.media) : getInfuraURL (meta.media);
-        const mime = meta.mimetype;
-        const actualType = await axios.head (media);
-        await setTimeout (1000);
-        if (actualType.headers['content-type'] !== mime) {
-            await declineDoc (doc, `wrong mimetype, expected ${mime}, got ${actualType.headers['content-type']}`);
-        } else {
-            try {
-                if (meta.image !== meta.media && !mime.startsWith ('audio')) {
-                    const resultImagePromise = rekognition.detectExplicitContent ({
-                        url: image,
-                        config: {
-                            resize: { width: 1024 }
-                        }
-                    });
-                    const resultMediaPromise = rekognition.detectExplicitContent ({
-                        url: media
-                    });
-    
-                    const [imageResult, mediaResult] = await Promise.all ([resultImagePromise, resultMediaPromise]);
-                    const allLabels = [...imageResult.ModerationLabels, ...mediaResult.ModerationLabels];
-                    const labels = constructLabels (allLabels);
-                    await checkLabels (doc, labels);
-                } else {
-                    const resultImage = await rekognition.detectExplicitContent ({
-                        url: image,
-                        config: {
-                            resize: { width: 1024 }
-                        }
-                    });
-                    const labels = constructLabels (resultImage.ModerationLabels);
-                    await checkLabels (doc, labels);
+        try {
+            console.log ('checking', doc.id, doc.data ().id);
+            const meta = doc.data ().meta;
+            const image = getInfuraURL (meta.image);
+            const media = meta.image !== meta.media ? getDwebURL (meta.media) : getInfuraURL (meta.media);
+            const mime = meta.mimetype;
+            const actualType = await axios.head (media);
+            await setTimeout (1000);
+            if (actualType.headers['content-type'] !== mime) {
+                await declineDoc (doc, `wrong mimetype, expected ${mime}, got ${actualType.headers['content-type']}`);
+            } else {
+                try {
+                    if (meta.image !== meta.media && !mime.startsWith ('audio')) {
+                        const resultImagePromise = rekognition.detectExplicitContent ({
+                            url: image,
+                            config: {
+                                resize: { width: 1024 }
+                            }
+                        });
+                        const resultMediaPromise = rekognition.detectExplicitContent ({
+                            url: media
+                        });
+        
+                        const [imageResult, mediaResult] = await Promise.all ([resultImagePromise, resultMediaPromise]);
+                        const allLabels = [...imageResult.ModerationLabels, ...mediaResult.ModerationLabels];
+                        const labels = constructLabels (allLabels);
+                        await checkLabels (doc, labels);
+                    } else {
+                        const resultImage = await rekognition.detectExplicitContent ({
+                            url: image,
+                            config: {
+                                resize: { width: 1024 }
+                            }
+                        });
+                        const labels = constructLabels (resultImage.ModerationLabels);
+                        await checkLabels (doc, labels);
+                    }
+                } catch (e) {
+                    if (e.toString ().toLowerCase ().includesAny (
+                        ['video duration', 'invalid file type', 'invalid data content']
+                    )) await declineDoc (doc, e);
+                    else console.error (e);
                 }
-            } catch (e) {
-                if (e.toString ().toLowerCase ().includesAny (
-                    ['video duration', 'invalid file type', 'invalid data content']
-                )) await declineDoc (doc, e);
-                else console.error (e);
             }
+        } catch (e) {
+            console.error (e);
+            declineDoc (doc, e);
         }
         await setTimeout (2000);
     }
