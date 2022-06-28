@@ -94,7 +94,7 @@ const doCheckDocs = async () => {
             console.log ('checking', doc.id, doc.data ().id);
             const meta = doc.data ().meta;
             const image = getInfuraURL (meta.image);
-            const media = meta.image !== meta.media ? getDwebURL (meta.media) : getInfuraURL (meta.media);
+            const media = meta.image !== meta.media ? getInfuraURL (meta.media) : getInfuraURL (meta.media);
             const mime = meta.mimetype;
             const actualType = await axios.head (media);
             await setTimeout (1000);
