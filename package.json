@@ -10,7 +10,7 @@
   "dependencies": {
     "@apollo/client": "^3.5.8",
     "@reef-defi/evm-provider": "^1.0.4",
-    "@sqwid/rekognition-wrapper": "^1.0.0",
+    "@sqwid/rekognition-wrapper": "^1.0.1",
     "apollo-link": "^1.2.14",
     "apollo-link-ws": "^1.0.20",
     "axios": "^0.26.0",
