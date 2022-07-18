@@ -96,10 +96,10 @@ const doCheckDocs = async () => {
             const image = getInfuraURL (meta.image);
             const media = meta.image !== meta.media ? getInfuraURL (meta.media) : getInfuraURL (meta.media);
             const mime = meta.mimetype;
-            const actualType = await axios.head (media);
+            // const actualType = await axios.head (media);
             await setTimeout (1000);
-            if (actualType.headers['content-type'] !== mime) {
-                await declineDoc (doc, `wrong mimetype, expected ${mime}, got ${actualType.headers['content-type']}`);
+            if (false) { // (actualType.headers['content-type'] !== mime)
+                // await declineDoc (doc, `wrong mimetype, expected ${mime}, got ${actualType.headers['content-type']}`);
             } else {
                 try {
                     if (meta.image !== meta.media && !mime.startsWith ('audio')) {
